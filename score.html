@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09111f">
+  <title>計分台｜第 22 題電競三戰兩勝賽</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="score-page">
+  <header class="topbar">
+    <a class="brand" href="./index.html"><span class="brand-mark">BO3</span><span>現場計分台</span></a>
+    <div class="top-meta">
+      <h1>第 22 題〈電競三戰兩勝賽〉</h1>
+      <div class="connection-row">
+        <span id="connection-state" class="connection-badge is-offline"><span class="status-dot"></span>連線中</span>
+        <span class="last-update">同步狀態：<time id="last-update">尚無資料</time></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell score-shell">
+    <section class="login-panel panel-card" id="login-view">
+      <p class="eyebrow">SCORER ACCESS</p>
+      <h2>計分員登入</h2>
+      <p class="section-note">使用已建立的電子郵件／密碼帳號登入。</p>
+      <div class="config-notice" id="config-notice" hidden></div>
+      <form id="login-form" class="login-form">
+        <label for="email">電子郵件</label>
+        <input id="email" name="email" type="email" autocomplete="username" required value="scorer@just.example">
+        <label for="password">密碼</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <p class="form-error" id="login-error" role="alert" hidden></p>
+        <button type="submit" class="button button-primary button-wide">登入計分台</button>
+      </form>
+    </section>
+
+    <section id="staff-view" hidden>
+      <div class="staff-bar panel-card">
+        <div><p class="eyebrow">SCORER SESSION</p><strong id="signed-in-email"></strong></div>
+        <button type="button" class="button button-quiet" id="signout-button">登出</button>
+      </div>
+      <p class="connection-notice" id="offline-notice" hidden>離線：所有計分與資料寫入功能已停用。</p>
+      <p class="form-error staff-feedback" id="staff-feedback" role="status" hidden></p>
+      <div class="staff-actions">
+        <button type="button" class="button button-danger" id="reset-demo-button">重設示範資料</button>
+        <button type="button" class="button button-primary" id="create-final-button" hidden>產生決賽</button>
+      </div>
+      <div class="staff-layout">
+        <section class="panel-card match-picker-card">
+          <div class="section-heading compact"><div><p class="eyebrow">MATCHES</p><h2>比賽清單</h2></div></div>
+          <div id="staff-match-list" class="staff-match-list"></div>
+        </section>
+        <section id="score-workbench" class="panel-card score-workbench">
+          <div class="empty-state">選擇一場比賽開始計分。</div>
+        </section>
+      </div>
+      <section class="panel-card action-log-card" id="action-log-card" hidden>
+        <div class="section-heading compact"><div><p class="eyebrow">EVENT LOG</p><h2>計分紀錄</h2></div></div>
+        <ol id="action-log" class="action-log"></ol>
+      </section>
+    </section>
+  </main>
+
+  <div class="confirm-backdrop" id="reset-confirm" hidden>
+    <section class="confirm-dialog panel-card" role="dialog" aria-modal="true" aria-labelledby="reset-title">
+      <p class="eyebrow">RESET DEMO</p>
+      <h2 id="reset-title">要重設示範資料嗎？</h2>
+      <p>這會重建賽事名稱、四支假名隊伍和六場未開始的循環賽，並清除所有計分紀錄與場地佔用。</p>
+      <div class="dialog-actions">
+        <button type="button" class="button button-quiet" id="cancel-reset">取消</button>
+        <button type="button" class="button button-danger" id="confirm-reset">確認重設</button>
+      </div>
+    </section>
+  </div>
+
+  <footer class="site-footer">
+    <span>資通系 李振偉老師</span>
+    <span class="footer-links"><a href="https://github.com/APPJust/esports-bo3" target="_blank" rel="noopener">原始碼</a><span>v2</span></span>
+  </footer>
+  <script type="module" src="./score.js"></script>
+</body>
+</html>

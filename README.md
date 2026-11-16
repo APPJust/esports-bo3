@@ -99,4 +99,3 @@ Firebase Web App 的 `firebaseConfig` 是前端初始化專案所需的公開設
 計分台與觀眾頁介面預覽（此圖是介面截圖，不代表已完成即時同步測試）：
 
 ![計分台與觀眾頁](screenshots/two-screens.png)
-

@@ -1,0 +1,14 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": "auth != null",
+    "matches": {
+      "$matchId": {
+        ".validate": "newData.hasChild('status') && (newData.child('status').val() == '未開始' || newData.child('status').val() == '進行中' || newData.child('status').val() == '已結束')",
+        "status": {
+          ".validate": "newData.isString() && (newData.val() == '未開始' || newData.val() == '進行中' || newData.val() == '已結束')"
+        }
+      }
+    }
+  }
+}

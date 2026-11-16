@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>第 22 題〈電競三戰兩勝賽〉規則測試</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, "Noto Sans TC", sans-serif; }
+    body { max-width: 980px; margin: 2rem auto; padding: 0 1rem; line-height: 1.55; }
+    h1 { font-size: 1.5rem; }
+    #summary { padding: .8rem 1rem; border-radius: .5rem; background: color-mix(in srgb, CanvasText 8%, Canvas); font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border-bottom: 1px solid color-mix(in srgb, CanvasText 20%, Canvas); padding: .65rem; text-align: left; vertical-align: top; }
+    th { white-space: nowrap; }
+    .pass { color: #16803c; font-weight: 700; }
+    .fail { color: #c62828; font-weight: 700; }
+    pre { margin: .35rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .hint { opacity: .78; }
+  </style>
+</head>
+<body>
+  <h1>第 22 題〈電競三戰兩勝賽〉規則測試</h1>
+  <p class="hint">此頁載入純函式 rules.js，開啟時會自動執行所有測試。</p>
+  <p id="summary" aria-live="polite">測試執行中…</p>
+  <table>
+    <thead><tr><th>結果</th><th>測試項目</th><th>失敗資訊</th></tr></thead>
+    <tbody id="results"></tbody>
+  </table>
+
+  <script type="module">
+    import { ACTIONS, SCORE_TYPES, canApply, describe, replay, roundRobin, standings } from './rules.js?v=2';
+
+    const A = { id: 'A', name: '藍鯨' };
+    const B = { id: 'B', name: '赤狐' };
+    const C = { id: 'C', name: '白鷺' };
+    const D = { id: 'D', name: '黑熊' };
+    const TEAMS = [A, B, C, D];
+
+    function startMatch(teams = [A, B]) {
+      return { type: ACTIONS.START_MATCH.type, teams };
+    }
+    function startGame(blueTeamId) {
+      const action = { type: ACTIONS.START_GAME.type };
+      if (blueTeamId != null) action.blueTeamId = blueTeamId;
+      return action;
+    }
+    function point(teamId, scoreType, amount = 1) {
+      return { type: ACTIONS.RECORD_SCORE.type, teamId, scoreType, amount };
+    }
+    function endGame(winnerTeamId) {
+      return { type: ACTIONS.END_GAME.type, winnerTeamId };
+    }
+    function deepSort(value) {
+      if (Array.isArray(value)) return value.map(deepSort);
+      if (value && typeof value === 'object') {
+        return Object.fromEntries(Object.keys(value).sort().map(key => [key, deepSort(value[key])]));
+      }
+      return value;
+    }
+    function assertEqual(actual, expected) {
+      if (JSON.stringify(deepSort(actual)) !== JSON.stringify(deepSort(expected))) {
+        const error = new Error('值不相符');
+        error.expected = expected;
+        error.actual = actual;
+        throw error;
+      }
+    }
+    function assertTrue(actual) { assertEqual(actual, true); }
+
+    function completedMatch(left, right, winners) {
+      const events = [startMatch([left, right])];
+      for (let index = 0; index < winners.length; index += 1) {
+        events.push(startGame(index === 0 ? left.id : undefined));
+        events.push(endGame(winners[index]));
+      }
+      return {
+        id: `test-${left.id}-${right.id}`,
+        phase: 'roundRobin',
+        teams: [left, right],
+        events,
+      };
+    }
+
+    const cases = [
+      {
+        name: '擊殺數比較少的一方也可以被判定獲勝',
+        run() {
+          const events = [startMatch(), startGame(A.id), point(A.id, SCORE_TYPES.KILLS, 1), point(B.id, SCORE_TYPES.KILLS, 3), endGame(A.id)];
+          const state = replay(events);
+          assertEqual({ killsA: state.games[0].score.kills.A, killsB: state.games[0].score.kills.B, winner: state.games[0].winnerTeamId }, { killsA: 1, killsB: 3, winner: 'A' });
+        },
+      },
+      {
+        name: '2:0 之後不會出現第三局',
+        run() {
+          const state = replay([startMatch(), startGame(A.id), endGame(A.id), startGame(), endGame(A.id)]);
+          assertEqual({ games: state.games.length, displayRows: describe(state).gameResults.length, thirdGameAllowed: canApply(state, startGame()).ok }, { games: 2, displayRows: 2, thirdGameAllowed: false });
+        },
+      },
+      {
+        name: '第二局預設的藍方是第一局的紅方',
+        run() {
+          const afterFirst = replay([startMatch(), startGame(A.id), endGame(A.id)]);
+          const afterSecondStarts = replay([startMatch(), startGame(A.id), endGame(A.id), startGame()]);
+          assertEqual({ default: afterFirst.nextBlueTeamId, selected: afterSecondStarts.currentGame.blueTeamId }, { default: B.id, selected: B.id });
+        },
+      },
+      {
+        name: '一場完整比賽從頭打到結束（2:1）',
+        run() {
+          const state = replay([startMatch(), startGame(A.id), endGame(A.id), startGame(), endGame(B.id), startGame(), endGame(A.id)]);
+          assertEqual({ status: state.status, complete: state.isComplete, score: state.score, winner: state.winnerTeamId, method: state.winMethod, games: state.games.length }, {
+            status: 'ended', complete: true, score: { A: 2, B: 1 }, winner: 'A', method: 'first_to_two_games', games: 3,
+          });
+        },
+      },
+      {
+        name: '結束後不能再計分',
+        run() {
+          const state = replay([startMatch(), startGame(A.id), endGame(A.id), startGame(), endGame(A.id)]);
+          assertEqual(canApply(state, point(A.id, SCORE_TYPES.KILLS)), { ok: false, reason: '比賽已結束，不能再執行計分動作。' });
+        },
+      },
+      {
+        name: '復原上一步會重算並移除最後一筆分數',
+        run() {
+          const events = [startMatch(), startGame(A.id), point(A.id, SCORE_TYPES.KILLS, 2)];
+          const restored = replay(events.slice(0, -1));
+          assertEqual({ kills: restored.currentGame.score.kills.A, rejected: restored.rejectedEvents.length }, { kills: 0, rejected: 0 });
+        },
+      },
+      {
+        name: '復原剛好結束比賽的那一步會回到進行中',
+        run() {
+          const events = [startMatch(), startGame(A.id), endGame(A.id), startGame(), endGame(A.id)];
+          const restored = replay(events.slice(0, -1));
+          assertEqual({ complete: restored.isComplete, winner: restored.winnerTeamId, score: restored.score, activeGame: restored.currentGame?.number, canScore: canApply(restored, point(B.id, SCORE_TYPES.TOWERS)).ok }, {
+            complete: false, winner: null, score: { A: 1, B: 0 }, activeGame: 2, canScore: true,
+          });
+        },
+      },
+      {
+        name: '排名先比勝場數，再比小局勝負差',
+        run() {
+          const matches = [
+            completedMatch(A, B, ['A', 'B', 'A']),
+            completedMatch(A, C, ['A', 'C', 'A']),
+            completedMatch(A, D, ['D', 'D']),
+            completedMatch(B, C, ['B', 'B']),
+            completedMatch(B, D, ['D', 'B', 'D']),
+            completedMatch(C, D, ['C', 'C']),
+          ];
+          const table = standings(TEAMS, matches);
+          const a = table.find(row => row.teamId === A.id);
+          const b = table.find(row => row.teamId === B.id);
+          assertEqual({ a: { rank: a.rank, wins: a.matchWins, diff: a.mapDiff }, b: { rank: b.rank, wins: b.matchWins, diff: b.mapDiff } }, {
+            a: { rank: 2, wins: 2, diff: 0 }, b: { rank: 3, wins: 1, diff: 0 },
+          });
+        },
+      },
+      {
+        name: '勝場相同時以小局勝負差決定名次',
+        run() {
+          const matches = [
+            completedMatch(A, B, ['A', 'A']),
+            completedMatch(A, C, ['C', 'A', 'C']),
+            completedMatch(A, D, ['A', 'A']),
+            completedMatch(B, C, ['B', 'B']),
+            completedMatch(B, D, ['B', 'B']),
+            completedMatch(C, D, ['C', 'C']),
+          ];
+          const table = standings(TEAMS, matches);
+          const a = table.find(row => row.teamId === A.id);
+          const b = table.find(row => row.teamId === B.id);
+          const c = table.find(row => row.teamId === C.id);
+          assertEqual({ a: [a.rank, a.matchWins, a.mapDiff], b: [b.rank, b.matchWins, b.mapDiff], c: [c.rank, c.matchWins, c.mapDiff] }, {
+            a: [1, 2, 3], b: [2, 2, 2], c: [3, 2, 1],
+          });
+        },
+      },
+      {
+        name: '排名只計算已結束的循環賽',
+        run() {
+          const matches = [
+            completedMatch(A, B, ['A', 'A']),
+            { phase: 'roundRobin', events: [startMatch([A, C])] },
+            { phase: 'final', events: completedMatch(B, C, ['B', 'B']).events },
+          ];
+          const table = standings(TEAMS, matches);
+          assertEqual(Object.fromEntries(table.map(row => [row.teamId, [row.matchesPlayed, row.matchWins]])), {
+            A: [1, 1], B: [1, 0], C: [0, 0], D: [0, 0],
+          });
+        },
+      },
+      {
+        name: '四隊單循環產生六組不重複對戰',
+        run() {
+          const matches = roundRobin(TEAMS);
+          const pairs = matches.map(match => match.teams.map(team => team.id).sort().join('-'));
+          assertEqual({ count: matches.length, uniquePairs: new Set(pairs).size, hasStartEvents: matches.every(match => match.events.length === 1) }, {
+            count: 6, uniquePairs: 6, hasStartEvents: true,
+          });
+        },
+      },
+      {
+        name: '未選第一局藍方及非法分數會被拒絕並說明原因',
+        run() {
+          const beforeStart = replay([startMatch()]);
+          const missingBlue = canApply(beforeStart, startGame());
+          const invalidScore = canApply(replay([startMatch(), startGame(A.id)]), point(A.id, SCORE_TYPES.KILLS, 1.5));
+          const rejected = replay([startMatch(), startGame(A.id), point(A.id, SCORE_TYPES.KILLS, 0)]);
+          assertEqual({ missingBlueOk: missingBlue.ok, missingBlueReason: missingBlue.reason, invalidScoreOk: invalidScore.ok, rejectedCount: rejected.rejectedEvents.length, kills: rejected.currentGame.score.kills.A }, {
+            missingBlueOk: false,
+            missingBlueReason: '第一局開始前必須指定藍方隊伍。',
+            invalidScoreOk: false,
+            rejectedCount: 1,
+            kills: 0,
+          });
+        },
+      },
+      {
+        name: '觀眾資訊包含進度圓點、每局擊殺推塔與勝方',
+        run() {
+          const state = replay([startMatch(), startGame(A.id), point(A.id, SCORE_TYPES.KILLS, 4), point(B.id, SCORE_TYPES.TOWERS, 2), endGame(A.id)]);
+          const view = describe(state);
+          assertEqual({ dots: view.progressDots.map(item => item.dots), result: view.gameResults[0], textHasWinner: view.text.includes('藍方（藍鯨）獲勝') }, {
+            dots: [['●', '○'], ['○', '○']],
+            result: {
+              gameNumber: 1,
+              blueTeamId: 'A',
+              redTeamId: 'B',
+              winnerTeamId: 'A',
+              killsText: '藍鯨 4 : 0 赤狐',
+              towersText: '藍鯨 0 : 2 赤狐',
+              winnerText: '藍方（藍鯨）獲勝',
+              text: '第 1 局｜擊殺：藍鯨 4 : 0 赤狐｜推塔：藍鯨 0 : 2 赤狐｜藍方（藍鯨）獲勝',
+            },
+            textHasWinner: true,
+          });
+        },
+      },
+      {
+        name: '排名兩項比序相同時同名次並維持隊伍輸入順序',
+        run() {
+          const table = standings([C, A, D, B], []);
+          assertEqual(table.map(row => [row.teamId, row.rank]), [['C', 1], ['A', 1], ['D', 1], ['B', 1]]);
+        },
+      },
+    ];
+
+    const results = [];
+    for (const testCase of cases) {
+      try {
+        testCase.run();
+        results.push({ name: testCase.name, pass: true });
+      } catch (error) {
+        results.push({
+          name: testCase.name,
+          pass: false,
+          expected: error.expected ?? '(測試條件成立)',
+          actual: error.actual ?? error.message,
+        });
+      }
+    }
+
+    const tbody = document.querySelector('#results');
+    for (const result of results) {
+      const row = document.createElement('tr');
+      const statusCell = document.createElement('td');
+      statusCell.className = result.pass ? 'pass' : 'fail';
+      statusCell.textContent = result.pass ? '通過' : '沒通過';
+      const nameCell = document.createElement('td');
+      nameCell.textContent = result.name;
+      const detailCell = document.createElement('td');
+      if (!result.pass) {
+        const expected = document.createElement('pre');
+        expected.textContent = `預期值：${JSON.stringify(result.expected, null, 2)}`;
+        const actual = document.createElement('pre');
+        actual.textContent = `實際值：${JSON.stringify(result.actual, null, 2)}`;
+        detailCell.append(expected, actual);
+      }
+      row.append(statusCell, nameCell, detailCell);
+      tbody.append(row);
+    }
+    const passed = results.filter(result => result.pass).length;
+    document.querySelector('#summary').textContent = `總計 ${results.length} 項：通過 ${passed} 項，沒通過 ${results.length - passed} 項。`;
+  </script>
+</body>
+</html>

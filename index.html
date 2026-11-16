@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09111f">
+  <title>第 22 題｜電競三戰兩勝賽</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="audience-page">
+  <header class="topbar">
+    <a class="brand" href="./index.html" aria-label="回到觀眾頁首頁"><span class="brand-mark">BO3</span><span>即時戰報</span></a>
+    <div class="top-meta">
+      <h1 id="event-name">第 22 題〈電競三戰兩勝賽〉</h1>
+      <div class="connection-row">
+        <span id="connection-state" class="connection-badge is-offline"><span class="status-dot"></span>連線中</span>
+        <span class="last-update">最後更新 <time id="last-update">尚無資料</time></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <nav class="tab-nav" id="main-tabs" aria-label="觀眾頁分頁">
+      <button type="button" data-tab="home" class="active">首頁</button>
+      <button type="button" data-tab="schedule">賽程</button>
+      <button type="button" data-tab="courts">場地</button>
+      <button type="button" data-tab="live">即時分數</button>
+      <button type="button" data-tab="results">成績</button>
+      <button type="button" data-tab="standings">排名</button>
+      <button type="button" data-tab="search">查詢</button>
+    </nav>
+
+    <section class="config-notice" id="config-notice" hidden></section>
+    <div class="connection-notice" id="offline-notice" hidden>目前離線，以下保留最後收到的資料，內容不是最新的。</div>
+
+    <section class="tab-panel active" id="panel-home" data-panel="home">
+      <div class="hero-card">
+        <p class="eyebrow">第 22 題・BEST OF THREE</p>
+        <h2 id="hero-event-name">電競三戰兩勝賽</h2>
+        <p>四隊單循環，先贏兩局拿下系列賽。現場計分即時同步，觀眾可查看賽程、場地、每局比分與排名。</p>
+        <div class="hero-actions">
+          <button type="button" class="button button-primary" data-go="live">觀看即時分數</button>
+          <button type="button" class="button button-quiet" data-go="schedule">查看賽程</button>
+        </div>
+      </div>
+      <div class="section-heading"><div><p class="eyebrow">快速入口</p><h2>賽事資訊</h2></div></div>
+      <div class="entry-grid" id="home-entries"></div>
+      <div class="section-heading"><div><p class="eyebrow">LIVE</p><h2>正在進行</h2></div><button class="text-button" data-go="live">全部即時比賽 →</button></div>
+      <div class="card-grid" id="home-live"></div>
+    </section>
+
+    <section class="tab-panel" id="panel-schedule" data-panel="schedule" hidden>
+      <div class="section-heading"><div><p class="eyebrow">MATCH DAY</p><h2>賽程</h2><p class="section-note">六場循環賽結束後，以排名前兩名安排決賽。</p></div></div>
+      <div id="schedule-list" class="schedule-list"></div>
+    </section>
+
+    <section class="tab-panel" id="panel-courts" data-panel="courts" hidden>
+      <div class="section-heading"><div><p class="eyebrow">VENUES</p><h2>場地狀態</h2><p class="section-note">每個場地顯示目前比賽與下一場未開始的對戰。</p></div></div>
+      <div class="card-grid" id="court-list"></div>
+    </section>
+
+    <section class="tab-panel" id="panel-live" data-panel="live" hidden>
+      <div class="section-heading"><div><p class="eyebrow">LIVE CENTER</p><h2>即時分數</h2><p class="section-note">本局勝方由計分員判定；擊殺和推塔數獨立記錄。</p></div></div>
+      <div id="live-list" class="card-grid"></div>
+    </section>
+
+    <section class="tab-panel" id="panel-results" data-panel="results" hidden>
+      <div class="section-heading"><div><p class="eyebrow">FINAL SCORES</p><h2>成績</h2><p class="section-note">列出已結束比賽的系列賽比分與每局細節。</p></div></div>
+      <div id="results-list" class="results-list"></div>
+    </section>
+
+    <section class="tab-panel" id="panel-standings" data-panel="standings" hidden>
+      <div class="section-heading"><div><p class="eyebrow">ROUND ROBIN</p><h2>循環賽排名</h2><p class="section-note">先比勝場數，再比小局勝負差；排名前兩位晉級決賽。</p></div></div>
+      <div class="table-wrap" id="standings-table"></div>
+      <p class="inline-notice" id="tie-notice" hidden>前兩席有並列情形，決賽種子需由賽會確認。</p>
+    </section>
+
+    <section class="tab-panel" id="panel-search" data-panel="search" hidden>
+      <div class="section-heading"><div><p class="eyebrow">FIND A TEAM</p><h2>查詢</h2><p class="section-note">輸入隊名或選手名，查看相關賽事和目前名次。</p></div></div>
+      <label class="search-label" for="team-search">隊名或選手名</label>
+      <input class="search-input" id="team-search" type="search" autocomplete="off" placeholder="例如：彗星旅團">
+      <div id="search-results" class="search-results"></div>
+    </section>
+
+    <section class="single-match-view" id="single-match-view" hidden>
+      <a class="button button-quiet back-link" href="./index.html">← 回到全部</a>
+      <div id="single-match-content"></div>
+    </section>
+
+    <p class="empty-state" id="global-empty" hidden>目前尚無賽事資料。請計分員登入計分台並重設示範資料。</p>
+  </main>
+
+  <footer class="site-footer">
+    <span>資通系 李振偉老師</span>
+    <span class="footer-links"><a href="https://github.com/APPJust/esports-bo3" target="_blank" rel="noopener">原始碼</a><span>v2</span></span>
+  </footer>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
